@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "526783278876",
+    "project_id": "baibanhang",
+    "storage_bucket": "baibanhang.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:526783278876:android:eb8e204d8ed04e6ce5d4d9",
+        "android_client_info": {
+          "package_name": "com.example.app_ban_hang"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "526783278876-b0grir1o1utiqlveks7rcgnkv0vj3t8l.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.app_ban_hang",
+            "certificate_hash": "a9c59e98757effbcf66caca98cac47f8b2fec55b"
+          }
+        },
+        {
+          "client_id": "526783278876-38q5o2k3abhekoepakbqaik3f4s0k8k8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD_HuRedZzYTO3KTECNgpsCx8vp-I9rqUY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "526783278876-38q5o2k3abhekoepakbqaik3f4s0k8k8.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
