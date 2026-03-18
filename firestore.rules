@@ -86,7 +86,6 @@ service cloud.firestore {
 
       // Delete: Users cannot delete their own profile (admins can delete via secure backend)
       allow delete: if false;
-      allow delete: if false;
     }
 
     // ==================== Wishlists Collection ====================
