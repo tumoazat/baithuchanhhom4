@@ -21,7 +21,7 @@ void main() {
       expect(provider.items, isEmpty);
     });
 
-    test('adds new items and merges duplicates', () async {
+    test('merges items with identical variants', () async {
       final provider = CartProvider();
       await provider.loadCartFromStorage();
       final product = ProductService.getProducts().first;
