@@ -1,9 +1,36 @@
-import 'package:baibanhang/providers/cart_provider.dart';
+import 'package:baibanhang/models/order.dart';
+import 'package:baibanhang/services/auth_service.dart';
+import 'package:baibanhang/services/order_service.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
-class OrderHistoryScreen extends StatelessWidget {
+class OrderHistoryScreen extends StatefulWidget {
   const OrderHistoryScreen({super.key});
+
+  static const routeName = '/order-history';
+
+  @override
+  State<OrderHistoryScreen> createState() => _OrderHistoryScreenState();
+}
+
+class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
+  late Future<List<Order>> _ordersFuture;
+  final _authService = AuthService();
+  final _orderService = OrderService();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOrders();
+  }
+
+  void _loadOrders() {
+    _ordersFuture = _authService.getCurrentUserId().then((userId) async {
+      if (userId == null) {
+        return [];
+      }
+      return await _orderService.getUserOrders(userId);
+    });
+  }
 
   static const routeName = '/order-history';
 
@@ -32,9 +59,46 @@ class OrderHistoryScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Lich su don hang')),
-      body: Consumer<CartProvider>(
-        builder: (context, cart, child) {
-          if (cart.orders.isEmpty) {
+      body: FutureBuilder<List<Order>>(
+        future: _ordersFuture,
+        builder: (context, snapshot) {
+          // Đang tải
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+
+          // Có lỗi
+          if (snapshot.hasError) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 56,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  const SizedBox(height: 10),
+                  Text('Lỗi tải dữ liệu: ${snapshot.error}'),
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    onPressed: () {
+                      setState(() {
+                        _loadOrders();
+                      });
+                    },
+                    child: const Text('Thử lại'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final orders = snapshot.data ?? [];
+          
+          if (orders.isEmpty) {
             return Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -53,10 +117,10 @@ class OrderHistoryScreen extends StatelessWidget {
 
           return ListView.separated(
             padding: const EdgeInsets.all(16),
-            itemCount: cart.orders.length,
+            itemCount: orders.length,
             separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (context, index) {
-              final order = cart.orders[index];
+              final order = orders[index];
               return Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(

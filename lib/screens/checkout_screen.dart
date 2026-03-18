@@ -125,24 +125,38 @@ class CheckoutScreen extends StatelessWidget {
                       SizedBox(
                         width: double.infinity,
                         child: FilledButton.icon(
-                          onPressed: () {
-                            final order = context.read<CartProvider>().checkout();
-                            if (order == null) {
-                              return;
-                            }
+                          onPressed: () async {
+                            try {
+                              final order = await context.read<CartProvider>().checkout();
+                              if (order == null) {
+                                return;
+                              }
 
-                            ScaffoldMessenger.of(context)
-                              ..hideCurrentSnackBar()
-                              ..showSnackBar(
-                                const SnackBar(
-                                  content: Text('Dat hang thanh cong'),
-                                ),
+                              if (!context.mounted) return;
+                              
+                              ScaffoldMessenger.of(context)
+                                ..hideCurrentSnackBar()
+                                ..showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Dat hang thanh cong'),
+                                  ),
+                                );
+
+                              if (!context.mounted) return;
+                              Navigator.pushReplacementNamed(
+                                context,
+                                OrderHistoryScreen.routeName,
                               );
-
-                            Navigator.pushReplacementNamed(
-                              context,
-                              OrderHistoryScreen.routeName,
-                            );
+                            } catch (e) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context)
+                                ..hideCurrentSnackBar()
+                                ..showSnackBar(
+                                  SnackBar(
+                                    content: Text(e.toString().replaceFirst('Exception: ', '')),
+                                  ),
+                                );
+                            }
                           },
                           icon: const Icon(Icons.check_circle_outline),
                           label: const Text('Xac nhan dat hang'),
