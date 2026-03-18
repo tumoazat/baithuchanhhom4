@@ -27,7 +27,9 @@ class Product {
 
   // Convenience method to get discount percentage if original price exists
   int? getDiscountPercentage() {
-    if (originalPrice == null || originalPrice == 0) return null;
+    if (originalPrice == null || originalPrice! <= 0 || price >= originalPrice!) {
+      return null;
+    }
     return ((originalPrice! - price) / originalPrice! * 100).toInt();
   }
 }
