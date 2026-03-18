@@ -81,11 +81,11 @@ service cloud.firestore {
       // Update own profile
       allow update: if isAuthenticated() && 
                        isOwner(userId) &&
-                       // Prevent unauthorized role changes
-                       (!request.resource.data.keys().hasAny(['admin', 'role']) ||
-                        request.resource.data.get('admin', false) == resource.data.get('admin', false));
+                       // Prevent unauthorized role/admin changes by ensuring these fields are not modified
+                       !request.resource.data.diff(resource.data).changedKeys().hasAny(['admin', 'role']);
 
       // Delete: Users cannot delete their own profile (admins can delete via secure backend)
+      allow delete: if false;
       allow delete: if false;
     }
 
