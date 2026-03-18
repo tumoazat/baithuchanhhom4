@@ -1,8 +1,7 @@
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../models/cart_item.dart';
+import 'package:baibanhang/models/cart_item.dart';
 
 class CartLocalStorage {
   static const String cartKey = 'cart_items';
