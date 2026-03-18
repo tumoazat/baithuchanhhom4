@@ -1,30 +1,56 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
+import 'package:baibanhang/providers/cart_provider.dart';
+import 'package:baibanhang/services/product_service.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:baibanhang/main.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  TestWidgetsFlutterBinding.ensureInitialized();
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  group('CartProvider', () {
+    test('adds new items and merges duplicates', () async {
+      final provider = CartProvider();
+      await provider.loadCartFromStorage();
+      final product = ProductService.getProducts().first;
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+      provider.addToCart(product: product, size: 'M', color: 'Black');
+      provider.addToCart(
+        product: product,
+        size: 'M',
+        color: 'Black',
+        quantity: 2,
+      );
+
+      expect(provider.itemCount, 1);
+      expect(provider.items.single.quantity, 3);
+    });
+
+    test('toggles selections and computes totals', () async {
+      final provider = CartProvider();
+      await provider.loadCartFromStorage();
+      final product = ProductService.getProducts().first;
+
+      provider.addToCart(
+        product: product,
+        size: 'L',
+        color: 'Red',
+        quantity: 2,
+      );
+
+      final cartItem = provider.items.single;
+      provider.toggleCheck(cartItem.id);
+
+      expect(provider.totalSelectedQuantity, 2);
+      expect(
+        provider.totalSelectedPrice,
+        product.price * 2,
+      );
+
+      provider.toggleCheckAll(false);
+      expect(provider.totalSelectedQuantity, 0);
+    });
   });
 }
