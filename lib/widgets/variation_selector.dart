@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 
+typedef VariationConfirmCallback = void Function(
+  String? size,
+  String? color,
+  int quantity,
+);
+
 class VariationSelector extends StatefulWidget {
   final List<String>? sizes;
   final List<String>? colors;
-  final Function(String? size, String? color, int quantity)? onConfirm;
+  final VariationConfirmCallback? onConfirm;
 
   const VariationSelector({
     super.key,
