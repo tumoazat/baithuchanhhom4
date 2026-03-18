@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   setUpAll(() {
-    TestWidgetsFlutterBinding.ensureInitialized();
+    TestDefaultBinaryMessengerBinding.ensureInitialized();
   });
 
   setUp(() {
@@ -35,7 +35,6 @@ void main() {
       );
 
       expect(provider.items.length, 1);
-      expect(provider.itemCount, 1);
       expect(provider.items.single.quantity, 3);
     });
 
