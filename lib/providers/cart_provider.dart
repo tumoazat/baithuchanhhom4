@@ -10,7 +10,7 @@ class CartProvider extends ChangeNotifier {
   int get cartCount => _cartItems.length;
 
   double get totalPrice {
-    return _cartItems.fold(0, (sum, item) => sum + item.getTotalPrice());
+    return _cartItems.fold<double>(0.0, (sum, item) => sum + item.getTotalPrice());
   }
 
   // TODO: Implement addToCart logic when integrating with ProductDetailScreen
