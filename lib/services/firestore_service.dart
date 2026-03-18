@@ -43,10 +43,35 @@ class FirestoreService {
   /// Search products by name or description
   Future<List<Product>> searchProducts(String query) async {
     try {
-      final snapshot = await _db.collection('products').get();
       final lowerQuery = query.toLowerCase();
-      return snapshot.docs
-          .map((doc) => Product.fromFirestore(doc.data(), doc.id))
+      final productsRef = _db.collection('products');
+
+      // Use Firestore range queries to narrow down candidates by title and description.
+      final titleSnapshot = await productsRef
+          .where('title', isGreaterThanOrEqualTo: query)
+          .where('title', isLessThanOrEqualTo: '$query\uf8ff')
+          .get();
+
+      final descriptionSnapshot = await productsRef
+          .where('description', isGreaterThanOrEqualTo: query)
+          .where('description', isLessThanOrEqualTo: '$query\uf8ff')
+          .get();
+
+      // Merge results from both queries, avoiding duplicates by document ID.
+      final Map<String, Product> productsById = {};
+
+      for (final doc in titleSnapshot.docs) {
+        final product = Product.fromFirestore(doc.data(), doc.id);
+        productsById[doc.id] = product;
+      }
+
+      for (final doc in descriptionSnapshot.docs) {
+        final product = Product.fromFirestore(doc.data(), doc.id);
+        productsById[doc.id] = product;
+      }
+
+      // Apply the original case-insensitive contains filter on the reduced set.
+      return productsById.values
           .where((product) =>
               product.title.toLowerCase().contains(lowerQuery) ||
               product.description.toLowerCase().contains(lowerQuery))
