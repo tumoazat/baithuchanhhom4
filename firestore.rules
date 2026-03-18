@@ -1,0 +1,151 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    // ==================== Products Collection ====================
+    // Anyone can read products
+    // Only authenticated admins can create/update/delete products
+    match /products/{document=**} {
+      // Read: Public access
+      allow read: if true;
+
+      // Create/Update: Admins only (you can set admin role in custom claims)
+      allow create, update: if isAuthenticated() && 
+                               request.auth.token.get('admin', false) == true &&
+                               hasRequiredFields(['title', 'description', 'price', 'imageUrl']);
+
+      // Delete: Admins only
+      allow delete: if isAuthenticated() && 
+                       request.auth.token.get('admin', false) == true;
+    }
+
+    // ==================== Orders Collection ====================
+    // Users can only read and create their own orders
+    match /orders/{document=**} {
+      // Read own orders
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+
+      // Create own orders (user must be the owner of new order)
+      allow create: if isAuthenticated() && 
+                       isOwner(request.resource.data.userId) &&
+                       hasRequiredFields(['userId', 'items', 'totalAmount', 'status']);
+
+      // Update own orders (limited fields)
+      allow update: if isAuthenticated() && 
+                       isOwner(resource.data.userId) &&
+                       // Allow only status field to be updated by user
+                       (let changedKeys = request.resource.data.diff(resource.data).changedKeys();
+                        changedKeys.size() == 1 && changedKeys.hasAll(['status']));
+
+      // Delete: Admins only
+      allow delete: if isAuthenticated() && 
+                       request.auth.token.get('admin', false) == true;
+    }
+
+    // ==================== Carts Collection ====================
+    // Users can only read and modify their own cart
+    match /carts/{userId} {
+      // Read own cart
+      allow read: if isAuthenticated() && isOwner(userId);
+
+      // Create/Update own cart
+      allow create, update: if isAuthenticated() && 
+                               isOwner(userId) &&
+                               hasRequiredFields(['items']);
+
+      // Delete own cart
+      allow delete: if isAuthenticated() && isOwner(userId);
+    }
+
+    // ==================== Users Collection ====================
+    // Users can only read and update their own profile
+    match /users/{userId} {
+      // Read own profile
+      allow read: if isAuthenticated() && isOwner(userId);
+
+      // Create own profile
+      allow create: if isAuthenticated() && isOwner(userId);
+
+      // Update own profile
+      allow update: if isAuthenticated() && 
+                       isOwner(userId) &&
+                       // Prevent unauthorized role/admin changes by ensuring these fields are not modified
+                       !request.resource.data.diff(resource.data).changedKeys().hasAny(['admin', 'role']);
+
+      // Delete: Users cannot delete their own profile (admins can delete via secure backend)
+      allow delete: if false;
+      allow delete: if false;
+    }
+
+    // ==================== Wishlists Collection ====================
+    // Users can only manage their own wishlist
+    match /wishlists/{userId} {
+      // Read own wishlist
+      allow read: if isAuthenticated() && isOwner(userId);
+
+      // Subcollection for wishlist items
+      match /items/{productId} {
+        // Read own wishlist items
+        allow read: if isAuthenticated() && isOwner(userId);
+
+        // Add to wishlist
+        allow create: if isAuthenticated() && 
+                        isOwner(userId) &&
+                        hasRequiredFields(['productId']);
+
+        // Delete from wishlist
+        allow delete: if isAuthenticated() && isOwner(userId);
+
+        // Cannot update wishlist items
+        allow update: if false;
+      }
+    }
+
+    // ==================== Reviews Collection ====================
+    // Users can create reviews for products
+    match /products/{productId}/reviews/{reviewId} {
+      // Anyone can read reviews
+      allow read: if true;
+
+      // Authenticated users can create reviews
+      allow create: if isAuthenticated() &&
+                       request.resource.data.userId == request.auth.uid &&
+                       hasRequiredFields(['userId', 'rating', 'comment', 'productId']);
+
+      // Users can update their own reviews
+      allow update: if isAuthenticated() && 
+                       isOwner(resource.data.userId) &&
+                       // Don't allow changing userId or productId
+                       request.resource.data.userId == resource.data.userId &&
+                       request.resource.data.productId == resource.data.productId;
+
+      // Users can delete their own reviews
+      allow delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // ==================== Admin Logs Collection ====================
+    // Admins can read and create logs, users cannot
+    match /admin_logs/{document=**} {
+      allow read: if isAuthenticated() && request.auth.token.get('admin', false) == true;
+      allow create: if isAuthenticated() && request.auth.token.get('admin', false) == true;
+      allow update, delete: if false;
+    }
+
+    // ==================== Deny everything else ====================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

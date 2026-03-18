@@ -8,8 +8,11 @@ import 'package:baibanhang/screens/order_history_screen.dart';
 import 'package:baibanhang/screens/product_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'config/firebase_initializer.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await FirebaseInitializer.initialize();
   runApp(const MyApp());
 }
 
