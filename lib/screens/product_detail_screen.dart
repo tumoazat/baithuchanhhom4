@@ -60,11 +60,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   String _truncateText(String text, int lines) {
-    final textSpan = TextSpan(text: text);
+    final textStyle = DefaultTextStyle.of(context).style;
+    final textSpan = TextSpan(
+      text: text,
+      style: textStyle,
+    );
     final textPainter = TextPainter(
       text: textSpan,
       maxLines: lines,
-      textDirection: TextDirection.ltr,
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.of(context).textScaler,
     );
     textPainter.layout(maxWidth: MediaQuery.of(context).size.width - 32);
     return textPainter.didExceedMaxLines ? '$text...' : text;
