@@ -1,8 +1,13 @@
-﻿import 'package:baibanhang/models/product.dart';
+﻿import 'dart:async';
+
+import 'package:baibanhang/models/product.dart';
 import 'package:baibanhang/screens/cart_screen.dart';
+import 'package:baibanhang/screens/login_screen.dart';
 import 'package:baibanhang/screens/order_history_screen.dart';
 import 'package:baibanhang/screens/product_detail_screen.dart';
+import 'package:baibanhang/services/auth_service.dart';
 import 'package:baibanhang/services/product_service.dart';
+import 'package:baibanhang/widgets/cart_badge.dart';
 import 'package:baibanhang/widgets/product_card.dart';
 import 'package:flutter/material.dart';
 
@@ -18,6 +23,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final ProductService _productService = ProductService();
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
 
   List<Product> _products = [];
   bool _isLoading = false;
@@ -26,6 +32,17 @@ class _HomeScreenState extends State<HomeScreen> {
   int _skip = 0;
   bool _isAppBarSolid = false;
   String? _errorMessage;
+  String _selectedCategory = 'Tat ca';
+  String _searchQuery = '';
+
+  static const List<String> _categories = [
+    'Tat ca',
+    'Quan ao',
+    'Nha cua',
+    'Gaming',
+    'Dien tu',
+    'Phu kien',
+  ];
 
   @override
   void initState() {
@@ -36,6 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    _searchController.dispose();
     _scrollController
       ..removeListener(_onScroll)
       ..dispose();
@@ -112,31 +130,47 @@ class _HomeScreenState extends State<HomeScreen> {
     required int limit,
     required int skip,
   }) async {
-    try {
-      final dynamic dynamicService = _productService;
-      final dynamic result = await dynamicService.fetchProducts(
-        limit: limit,
-        skip: skip,
-      );
-      if (result is List<Product>) {
-        return result;
-      }
-      if (result is List) {
-        return result.whereType<Product>().toList();
-      }
-    } on NoSuchMethodError {
-      // TODO: Remove this fallback once ProductService exposes fetchProducts.
-    }
+    return _productService.fetchProducts(limit: limit, skip: skip);
+  }
 
-    final all = await _productService.getProducts();
-    if (skip >= all.length) {
-      return <Product>[];
+  String _resolveCategory(Product product) {
+    final text = '${product.name} ${product.description}'.toLowerCase();
+    if (text.contains('ao') || text.contains('giay') || text.contains('thoi trang')) {
+      return 'Quan ao';
     }
-    var end = skip + limit;
-    if (end > all.length) {
-      end = all.length;
+    if (text.contains('nha') || text.contains('bep') || text.contains('gia do')) {
+      return 'Nha cua';
     }
-    return all.sublist(skip, end);
+    if (text.contains('gaming') || text.contains('chuot') || text.contains('ban phim')) {
+      return 'Gaming';
+    }
+    if (text.contains('man hinh') || text.contains('dien tu') || text.contains('laptop')) {
+      return 'Dien tu';
+    }
+    return 'Phu kien';
+  }
+
+  List<Product> get _visibleProducts {
+    final query = _searchQuery.trim().toLowerCase();
+
+    return _products.where((product) {
+      final matchCategory =
+          _selectedCategory == 'Tat ca' ||
+          _resolveCategory(product) == _selectedCategory;
+
+      if (!matchCategory) {
+        return false;
+      }
+
+      if (query.isEmpty) {
+        return true;
+      }
+
+      final searchable =
+          '${product.name} ${product.description}'.toLowerCase();
+      return searchable.contains(query);
+    })
+        .toList(growable: false);
   }
 
   SliverToBoxAdapter _buildSectionHeader(BuildContext context) {
@@ -160,6 +194,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildProductSliver() {
+    final products = _visibleProducts;
+
     if (_products.isEmpty && _isLoading) {
       return const SliverFillRemaining(
         hasScrollBody: false,
@@ -196,6 +232,19 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
+    if (products.isEmpty) {
+      return SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(
+          child: Text(
+            _searchQuery.trim().isEmpty
+                ? 'Khong tim thay san pham phu hop bo loc.'
+                : 'Khong tim thay ket qua cho "${_searchQuery.trim()}".',
+          ),
+        ),
+      );
+    }
+
     return SliverLayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.crossAxisExtent;
@@ -207,7 +256,7 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           sliver: SliverGrid(
             delegate: SliverChildBuilderDelegate((context, index) {
-              final product = _products[index];
+              final product = products[index];
               return ProductCard(
                 product: product,
                 onTap: () {
@@ -218,7 +267,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 },
               );
-            }, childCount: _products.length),
+            }, childCount: products.length),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: crossAxisCount,
               crossAxisSpacing: 10,
@@ -244,17 +293,46 @@ class _HomeScreenState extends State<HomeScreen> {
           slivers: [
             _HomeSliverAppBar(
               isSolid: _isAppBarSolid,
+              searchController: _searchController,
+              onSearchChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                });
+              },
               onTapHistory: () {
                 Navigator.pushNamed(context, OrderHistoryScreen.routeName);
               },
               onTapCart: () {
                 Navigator.pushNamed(context, CartScreen.routeName);
               },
+              onTapLogout: () async {
+                await AuthService().signOut();
+                if (!mounted) {
+                  return;
+                }
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  LoginScreen.routeName,
+                  (_) => false,
+                );
+              },
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 12)),
             const SliverToBoxAdapter(child: _HomeBannerSection()),
+            const SliverToBoxAdapter(child: SizedBox(height: 10)),
+            const SliverToBoxAdapter(child: _FlashSaleSection()),
             const SliverToBoxAdapter(child: SizedBox(height: 12)),
-            const SliverToBoxAdapter(child: _HomeCategorySection()),
+            SliverToBoxAdapter(
+              child: _HomeCategorySection(
+                categories: _categories,
+                selectedCategory: _selectedCategory,
+                onSelected: (value) {
+                  setState(() {
+                    _selectedCategory = value;
+                  });
+                },
+              ),
+            ),
             _buildSectionHeader(context),
             _buildProductSliver(),
             if (_isLoading && _products.isNotEmpty)
@@ -275,13 +353,19 @@ class _HomeScreenState extends State<HomeScreen> {
 class _HomeSliverAppBar extends StatelessWidget {
   const _HomeSliverAppBar({
     required this.isSolid,
+    required this.searchController,
+    required this.onSearchChanged,
     required this.onTapHistory,
     required this.onTapCart,
+    required this.onTapLogout,
   });
 
   final bool isSolid;
+  final TextEditingController searchController;
+  final ValueChanged<String> onSearchChanged;
   final VoidCallback onTapHistory;
   final VoidCallback onTapCart;
+  final VoidCallback onTapLogout;
 
   @override
   Widget build(BuildContext context) {
@@ -300,9 +384,12 @@ class _HomeSliverAppBar extends StatelessWidget {
           tooltip: 'Lich su don hang',
         ),
         IconButton(
+          onPressed: onTapLogout,
+          icon: const Icon(Icons.logout_rounded),
+          tooltip: 'Dang xuat',
+        ),
+        CartBadge(
           onPressed: onTapCart,
-          icon: const Icon(Icons.shopping_cart_outlined),
-          tooltip: 'Gio hang',
         ),
       ],
       flexibleSpace: FlexibleSpaceBar(
@@ -322,39 +409,42 @@ class _HomeSliverAppBar extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'TH4 - Nhom 4',
+                'TH4 - Nhom 4 | Mall',
                 style: theme.textTheme.titleLarge?.copyWith(
                   color: theme.colorScheme.onPrimary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 10),
-              InkWell(
-                onTap: () {},
-                borderRadius: BorderRadius.circular(10),
-                child: Container(
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  alignment: Alignment.centerLeft,
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.search,
-                        size: 18,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Tim kiem san pham...',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
+              Container(
+                height: 42,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                alignment: Alignment.center,
+                child: TextField(
+                  controller: searchController,
+                  onChanged: onSearchChanged,
+                  textInputAction: TextInputAction.search,
+                  decoration: InputDecoration(
+                    hintText: 'Tim kiem san pham, deal hot...',
+                    prefixIcon: const Icon(Icons.search, size: 18),
+                    suffixIcon: searchController.text.isEmpty
+                        ? null
+                        : IconButton(
+                            onPressed: () {
+                              searchController.clear();
+                              onSearchChanged('');
+                            },
+                            icon: const Icon(Icons.close_rounded, size: 18),
+                          ),
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                   ),
                 ),
               ),
@@ -366,75 +456,293 @@ class _HomeSliverAppBar extends StatelessWidget {
   }
 }
 
-class _HomeBannerSection extends StatelessWidget {
+class _HomeBannerSection extends StatefulWidget {
   const _HomeBannerSection();
 
   @override
-  Widget build(BuildContext context) {
-    final banners = <_BannerItem>[
-      const _BannerItem(
-        title: 'Sieu sale 3.3',
-        subtitle: 'Giam den 50% cho phu kien cong nghe',
-        colors: [Color(0xFFF97316), Color(0xFFFB7185)],
-      ),
-      const _BannerItem(
-        title: 'Mien phi van chuyen',
-        subtitle: 'Ap dung don tu 99K',
-        colors: [Color(0xFF2563EB), Color(0xFF0EA5E9)],
-      ),
-      const _BannerItem(
-        title: 'Hang moi ve',
-        subtitle: 'Cap nhat san pham hot moi ngay',
-        colors: [Color(0xFF16A34A), Color(0xFF4D7C0F)],
-      ),
-    ];
+  State<_HomeBannerSection> createState() => _HomeBannerSectionState();
+}
 
-    return SizedBox(
-      height: 148,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: banners.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
-        itemBuilder: (context, index) {
-          final banner = banners[index];
-          return Container(
-            width: 300,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: banner.colors,
+class _HomeBannerSectionState extends State<_HomeBannerSection> {
+  final PageController _controller = PageController(viewportFraction: 0.92);
+  int _currentIndex = 0;
+  Timer? _timer;
+
+  final List<_BannerItem> _banners = const <_BannerItem>[
+    _BannerItem(
+      title: 'Sieu sale 3.3',
+      subtitle: 'Giam den 50% cho phu kien cong nghe',
+      colors: [Color(0xFFF97316), Color(0xFFFB7185)],
+    ),
+    _BannerItem(
+      title: 'Mien phi van chuyen',
+      subtitle: 'Ap dung don tu 99K',
+      colors: [Color(0xFF2563EB), Color(0xFF0EA5E9)],
+    ),
+    _BannerItem(
+      title: 'Hang moi ve',
+      subtitle: 'Cap nhat san pham hot moi ngay',
+      colors: [Color(0xFF16A34A), Color(0xFF4D7C0F)],
+    ),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!_controller.hasClients) {
+        return;
+      }
+      final next = (_currentIndex + 1) % _banners.length;
+      _controller.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 450),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SizedBox(
+          height: 150,
+          child: PageView.builder(
+            controller: _controller,
+            itemCount: _banners.length,
+            onPageChanged: (index) {
+              setState(() {
+                _currentIndex = index;
+              });
+            },
+            itemBuilder: (context, index) {
+              final banner = _banners[index];
+              return Padding(
+                padding: const EdgeInsets.only(left: 16, right: 8),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: banner.colors,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        banner.title,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        banner.subtitle,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.white.withOpacity(0.95),
+                        ),
+                      ),
+                      const Spacer(),
+                      const Text(
+                        'Xem ngay >',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(
+            _banners.length,
+            (index) => AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              height: 6,
+              width: _currentIndex == index ? 22 : 6,
+              decoration: BoxDecoration(
+                color: _currentIndex == index
+                    ? const Color(0xFFFF6A00)
+                    : Colors.grey.shade400,
+                borderRadius: BorderRadius.circular(20),
               ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  banner.title,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FlashSaleSection extends StatefulWidget {
+  const _FlashSaleSection();
+
+  @override
+  State<_FlashSaleSection> createState() => _FlashSaleSectionState();
+}
+
+class _FlashSaleSectionState extends State<_FlashSaleSection> {
+  final PageController _controller = PageController(viewportFraction: 0.95);
+  int _current = 0;
+  Timer? _timer;
+
+  final List<({String title, String subtitle, int percent})> _items = const [
+    (title: 'Tai nghe gaming', subtitle: 'So luong co han', percent: 35),
+    (title: 'Ban phim co mini', subtitle: 'Deal gia tot 12h', percent: 42),
+    (title: 'Chuot khong day', subtitle: 'Giam them voucher', percent: 28),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (!_controller.hasClients) {
+        return;
+      }
+      final next = (_current + 1) % _items.length;
+      _controller.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 420),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 118,
+      child: PageView.builder(
+        controller: _controller,
+        itemCount: _items.length,
+        onPageChanged: (index) {
+          setState(() {
+            _current = index;
+          });
+        },
+        itemBuilder: (context, index) {
+          final item = _items[index];
+          final isActive = _current == index;
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: AnimatedScale(
+              duration: const Duration(milliseconds: 220),
+              scale: isActive ? 1 : 0.98,
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFF5A24), Color(0xFFFF8A00)],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
                   ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x33FF5A24),
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  banner.subtitle,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.white.withOpacity(0.95),
-                  ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.flash_on,
+                        color: Colors.white,
+                        size: 36,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            'FLASH SALE',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            item.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            item.subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        '-${item.percent}%',
+                        style: const TextStyle(
+                          color: Color(0xFFFF5A24),
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const Spacer(),
-                const Text(
-                  'Xem ngay >',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+              ),
             ),
           );
         },
@@ -444,22 +752,26 @@ class _HomeBannerSection extends StatelessWidget {
 }
 
 class _HomeCategorySection extends StatelessWidget {
-  const _HomeCategorySection();
+  const _HomeCategorySection({
+    required this.categories,
+    required this.selectedCategory,
+    required this.onSelected,
+  });
+
+  final List<String> categories;
+  final String selectedCategory;
+  final ValueChanged<String> onSelected;
 
   @override
   Widget build(BuildContext context) {
-    const items = <({IconData icon, String label})>[
-      (icon: Icons.flash_on, label: 'Flash Sale'),
-      (icon: Icons.phone_android, label: 'Dien thoai'),
-      (icon: Icons.watch_outlined, label: 'Dong ho'),
-      (icon: Icons.chair_alt_outlined, label: 'Nha cua'),
-      (icon: Icons.sports_esports_outlined, label: 'Gaming'),
-      (icon: Icons.camera_alt_outlined, label: 'May anh'),
-      (icon: Icons.headphones, label: 'Am thanh'),
-      (icon: Icons.local_grocery_store, label: 'Sieu thi'),
-      (icon: Icons.checkroom, label: 'Thoi trang'),
-      (icon: Icons.more_horiz, label: 'Them'),
-    ];
+    final iconMap = <String, IconData>{
+      'Tat ca': Icons.grid_view_rounded,
+      'Quan ao': Icons.checkroom,
+      'Nha cua': Icons.chair_alt_outlined,
+      'Gaming': Icons.sports_esports_outlined,
+      'Dien tu': Icons.devices_other_rounded,
+      'Phu kien': Icons.watch_outlined,
+    };
 
     final theme = Theme.of(context);
 
@@ -475,39 +787,60 @@ class _HomeCategorySection extends StatelessWidget {
         child: GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: items.length,
+          itemCount: categories.length,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 5,
-            childAspectRatio: 0.8,
+            crossAxisCount: 3,
+            childAspectRatio: 2.35,
             crossAxisSpacing: 8,
             mainAxisSpacing: 10,
           ),
           itemBuilder: (context, index) {
-            final item = items[index];
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    item.icon,
-                    color: theme.colorScheme.onPrimaryContainer,
-                    size: 22,
+            final category = categories[index];
+            final selected = category == selectedCategory;
+            return InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => onSelected(category),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? const Color(0xFFFFE3D2)
+                      : theme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: selected
+                        ? const Color(0xFFFF6A00)
+                        : theme.colorScheme.outlineVariant,
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  item.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelSmall,
+                child: Row(
+                  children: [
+                    Icon(
+                      iconMap[category] ?? Icons.category_outlined,
+                      size: 18,
+                      color: selected
+                          ? const Color(0xFFFF6A00)
+                          : theme.colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        category,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: selected
+                              ? const Color(0xFFFF6A00)
+                              : theme.colorScheme.onSurfaceVariant,
+                          fontWeight:
+                              selected ? FontWeight.w700 : FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             );
           },
         ),
