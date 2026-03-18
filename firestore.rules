@@ -46,8 +46,8 @@ service cloud.firestore {
       allow update: if isAuthenticated() && 
                        isOwner(resource.data.userId) &&
                        // Allow only status field to be updated by user
-                       (request.resource.data.status != resource.data.status ||
-                        request.resource.data.keys().size() == 1);
+                       (let changedKeys = request.resource.data.diff(resource.data).changedKeys();
+                        changedKeys.size() == 1 && changedKeys.hasAll(['status']));
 
       // Delete: Admins only
       allow delete: if isAuthenticated() && 
