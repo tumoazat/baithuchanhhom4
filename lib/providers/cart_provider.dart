@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'dart:async';
 
 import '../models/cart_item.dart';
 import '../models/product.dart';
@@ -176,7 +177,14 @@ class CartProvider extends ChangeNotifier {
   }
 
   void _save() {
-    _storage.saveCart(_items);
+    unawaited(
+      _storage.saveCart(_items).catchError((error, stackTrace) {
+        if (kDebugMode) {
+          // ignore: avoid_print
+          print('Error saving cart: $error');
+        }
+      }),
+    );
     notifyListeners();
   }
 }
