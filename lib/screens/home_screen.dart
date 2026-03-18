@@ -1,6 +1,7 @@
 ﻿import 'dart:async';
 
 import 'package:baibanhang/models/product.dart';
+import 'package:baibanhang/providers/cart_provider.dart';
 import 'package:baibanhang/screens/cart_screen.dart';
 import 'package:baibanhang/screens/login_screen.dart';
 import 'package:baibanhang/screens/order_history_screen.dart';
@@ -10,6 +11,7 @@ import 'package:baibanhang/services/product_service.dart';
 import 'package:baibanhang/widgets/cart_badge.dart';
 import 'package:baibanhang/widgets/product_card.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -49,6 +51,23 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _scrollController.addListener(_onScroll);
     _fetchProducts();
+    _initializeCart();
+  }
+
+  // Khởi tạo giỏ hàng từ Firestore khi user đăng nhập
+  Future<void> _initializeCart() async {
+    try {
+      final authService = AuthService();
+      final userId = await authService.getCurrentUserId();
+      
+      if (userId != null) {
+        final cartProvider = context.read<CartProvider>();
+        await cartProvider.initializeWithUser(userId);
+        print('✅ Giỏ hàng đã được khởi tạo cho user: $userId');
+      }
+    } catch (e) {
+      print('❌ Lỗi khởi tạo giỏ hàng: $e');
+    }
   }
 
   @override
@@ -307,6 +326,13 @@ class _HomeScreenState extends State<HomeScreen> {
               },
               onTapLogout: () async {
                 await AuthService().signOut();
+                
+                // Xóa dữ liệu giỏ hàng
+                if (mounted) {
+                  final cartProvider = context.read<CartProvider>();
+                  cartProvider.logout();
+                }
+                
                 if (!mounted) {
                   return;
                 }

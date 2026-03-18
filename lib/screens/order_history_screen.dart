@@ -99,11 +99,11 @@ class OrderHistoryScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    Text('Thoi gian: ${_formatDate(order.createdAt)}'),
-                    Text('So san pham: ${order.items.length}'),
+                    Text('Thoi gian: ${_formatDate(order.createdAt ?? DateTime.now())}'),
+                    Text('So san pham: ${order.items?.length ?? 0}'),
                     const SizedBox(height: 8),
                     Text(
-                      'Tong tien: ${_formatCurrency(order.totalAmount)}',
+                      'Tong tien: ${_formatCurrency(order.totalPrice ?? 0.0)}',
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         color: const Color(0xFFFF6A00),
                         fontWeight: FontWeight.w800,

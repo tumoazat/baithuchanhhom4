@@ -1,6 +1,8 @@
+import 'package:baibanhang/providers/cart_provider.dart';
 import 'package:baibanhang/screens/home_screen.dart';
 import 'package:baibanhang/services/auth_service.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -47,32 +49,23 @@ class _LoginScreenState extends State<LoginScreen> {
         email: _emailController.text,
         password: _passwordController.text,
       );
+      
+      if (!mounted) return;
+      
+      // Khởi tạo CartProvider với userId mới
+      final userId = await _authService.getCurrentUserId();
+      if (userId != null && mounted) {
+        final cartProvider = context.read<CartProvider>();
+        await cartProvider.initializeWithUser(userId);
+        print('✅ Giỏ hàng được khởi tạo sau đăng nhập: $userId');
+      }
+      
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, HomeScreen.routeName);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
-      );
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _signInGoogle() async {
-    setState(() => _loading = true);
-    try {
-      await _authService.signInWithGoogle();
-      if (!mounted) return;
-      Navigator.pushReplacementNamed(context, HomeScreen.routeName);
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            e.toString().replaceFirst('Exception: ', ''),
-          ),
-        ),
       );
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -149,26 +142,19 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 12),
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Expanded(child: Divider()),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Text(
-                              'hoac',
-                              style: theme.textTheme.bodySmall,
-                            ),
+                          const Text('Chưa có tài khoản? '),
+                          TextButton(
+                            onPressed: _loading
+                                ? null
+                                : () => Navigator.pushNamed(
+                                      context,
+                                      '/signup',
+                                    ),
+                            child: const Text('Đăng ký'),
                           ),
-                          const Expanded(child: Divider()),
                         ],
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        height: 46,
-                        child: OutlinedButton.icon(
-                          onPressed: _loading ? null : _signInGoogle,
-                          icon: const Icon(Icons.g_mobiledata, size: 28),
-                          label: const Text('Dang nhap voi Google'),
-                        ),
                       ),
                     ],
                   ),

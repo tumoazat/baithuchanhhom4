@@ -6,13 +6,23 @@ import 'package:baibanhang/screens/home_screen.dart';
 import 'package:baibanhang/screens/login_screen.dart';
 import 'package:baibanhang/screens/order_history_screen.dart';
 import 'package:baibanhang/screens/product_detail_screen.dart';
+import 'package:baibanhang/screens/signup_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'config/firebase_initializer.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await FirebaseInitializer.initialize();
+  print('📱 Starting app initialization...');
+  
+  // Initialize Firebase with timeout
+  try {
+    await FirebaseInitializer.initialize();
+  } catch (e) {
+    print('⚠️ Error during Firebase init: $e');
+  }
+  
+  print('🚀 Running app...');
   runApp(const MyApp());
 }
 
@@ -56,6 +66,7 @@ class MyApp extends StatelessWidget {
         initialRoute: LoginScreen.routeName,
         routes: {
           LoginScreen.routeName: (context) => const LoginScreen(),
+          '/signup': (context) => const SignupScreen(),
           HomeScreen.routeName: (context) => const HomeScreen(),
           CartScreen.routeName: (context) => const CartScreen(),
           CheckoutScreen.routeName: (context) => const CheckoutScreen(),
