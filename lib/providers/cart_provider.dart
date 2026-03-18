@@ -1,11 +1,13 @@
 import 'package:flutter/foundation.dart';
+import 'dart:collection';
 import '../models/cart_item.dart';
 import '../models/product.dart';
 
 class CartProvider extends ChangeNotifier {
   List<CartItem> _cartItems = [];
 
-  List<CartItem> get cartItems => _cartItems;
+  UnmodifiableListView<CartItem> get cartItems =>
+      UnmodifiableListView(_cartItems);
 
   int get cartCount => _cartItems.length;
 
