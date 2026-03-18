@@ -60,8 +60,15 @@ class Product {
 
   /// Create Product from JSON
   factory Product.fromJson(Map<String, dynamic> json) {
+    final dynamic rawId = json['id'];
+    if (rawId is! String || rawId.isEmpty) {
+      throw ArgumentError(
+        'Product.fromJson: "id" is required and must be a non-empty string.',
+      );
+    }
+
     return Product(
-      id: json['id'] ?? '',
+      id: rawId,
       title: json['title'] ?? '',
       description: json['description'] ?? '',
       price: (json['price'] ?? 0).toDouble(),
