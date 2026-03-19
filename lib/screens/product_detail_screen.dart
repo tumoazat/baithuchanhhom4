@@ -41,6 +41,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       urls.add(primaryImage);
     }
 
+    // Luon bo sung anh fallback de tranh UI bi trong neu API thieu anh.
     urls.addAll([
       'https://picsum.photos/seed/${widget.product.id}-1/900/900',
       'https://picsum.photos/seed/${widget.product.id}-2/900/900',
@@ -66,6 +67,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Future<void> _openVariantBottomSheet({required bool buyNow}) async {
+    // Bottom sheet tra ve bien the/so luong nguoi dung da chon.
     final result = await showModalBottomSheet<_VariantSelection>(
       context: context,
       isScrollControlled: true,
@@ -219,15 +221,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
 
     final cart = context.read<CartProvider>();
+    // CartProvider hien tai add theo tung don vi, nen lap theo quantity.
     for (var i = 0; i < result.quantity; i++) {
       cart.addProduct(widget.product);
     }
+    // Sau khi add, CartScreen/Checkout se thay doi ngay vi cung nghe CartProvider.
 
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text('Them thanh cong')));
 
     if (buyNow) {
+      // Luong mua ngay: sau Detail thi di thang qua Cart de tiep tuc Checkout.
       Navigator.pushNamed(context, CartScreen.routeName);
     }
   }
@@ -587,6 +592,7 @@ class _ExpandableDescriptionState extends State<_ExpandableDescription> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final span = TextSpan(text: widget.text, style: textStyle);
+        // Do thu text voi max 5 dong de quyet dinh co hien nut "Xem them".
         final painter = TextPainter(
           text: span,
           maxLines: 5,

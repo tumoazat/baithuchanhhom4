@@ -17,6 +17,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Dat CartProvider o root de moi man hinh co the doc/cap nhat gio hang.
     return ChangeNotifierProvider(
       create: (_) => CartProvider(),
       child: MaterialApp(
@@ -34,6 +35,7 @@ class MyApp extends StatelessWidget {
           OrderHistoryScreen.routeName: (context) => const OrderHistoryScreen(),
         },
         onGenerateRoute: (settings) {
+          // Route chi tiet can tham so Product nen xu ly qua onGenerateRoute.
           if (settings.name == ProductDetailScreen.routeName) {
             final data = settings.arguments;
             if (data is Product) {
@@ -43,6 +45,7 @@ class MyApp extends StatelessWidget {
             }
           }
 
+          // Fallback an toan neu route/arguments khong hop le.
           return MaterialPageRoute(builder: (context) => const HomeScreen());
         },
       ),

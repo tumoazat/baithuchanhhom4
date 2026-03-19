@@ -13,6 +13,7 @@ class OrderHistoryScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Lich su don hang')),
       body: Consumer<CartProvider>(
         builder: (context, cart, child) {
+          // Man cuoi luong du lieu: chi doc danh sach order da duoc tao o Checkout.
           if (cart.orders.isEmpty) {
             return const Center(child: Text('Chua co don hang nao.'));
           }

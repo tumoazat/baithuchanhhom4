@@ -22,6 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Product> _products = [];
   bool _isLoading = false;
   bool _hasMore = true;
+  // _limit: so item moi lan tai, _skip: so item da bo qua.
   int _limit = 10;
   int _skip = 0;
   bool _isAppBarSolid = false;
@@ -31,6 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    // Diem bat dau luong du lieu: Home tai danh sach Product de hien thi.
     _fetchProducts();
   }
 
@@ -47,6 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
+    // Doi nen AppBar khi cuon de tang do tuong phan.
     final position = _scrollController.position;
     final shouldSolid = position.pixels > 18;
     if (shouldSolid != _isAppBarSolid) {
@@ -55,6 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     }
 
+    // Tai tiep truoc khi cham day 200px de cuon muot hon.
     if (position.pixels >= position.maxScrollExtent - 200 &&
         _hasMore &&
         !_isLoading) {
@@ -74,6 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _isLoading = true;
       _errorMessage = null;
       if (refresh) {
+        // Pull-to-refresh reset lai trang thai phan trang.
         _skip = 0;
         _hasMore = true;
         _products = [];
@@ -89,6 +94,7 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _products.addAll(fetched);
         _skip += fetched.length;
+        // Neu tra ve it hon limit thi xem nhu het du lieu.
         _hasMore = fetched.length >= _limit;
       });
     } catch (_) {
@@ -113,6 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
     required int skip,
   }) async {
     try {
+      // Tuong thich nguoc: neu service co fetchProducts(limit, skip) thi dung.
       final dynamic dynamicService = _productService;
       final dynamic result = await dynamicService.fetchProducts(
         limit: limit,
@@ -128,6 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // TODO: Remove this fallback once ProductService exposes fetchProducts.
     }
 
+    // Fallback: lay toan bo roi cat theo skip/limit de mo phong pagination.
     final all = await _productService.getProducts();
     if (skip >= all.length) {
       return <Product>[];
@@ -199,6 +207,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return SliverLayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.crossAxisExtent;
+        // Tu dong doi so cot theo do rong man hinh (responsive grid).
         final crossAxisCount = width >= 1000
             ? 5
             : (width >= 760 ? 4 : (width >= 520 ? 3 : 2));
@@ -211,6 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
               return ProductCard(
                 product: product,
                 onTap: () {
+                  // Chuyen Product duoc chon sang man Detail qua route arguments.
                   Navigator.pushNamed(
                     context,
                     ProductDetailScreen.routeName,
@@ -245,9 +255,11 @@ class _HomeScreenState extends State<HomeScreen> {
             _HomeSliverAppBar(
               isSolid: _isAppBarSolid,
               onTapHistory: () {
+                // OrderHistory doc du lieu tu CartProvider.orders (duoc tao o Checkout).
                 Navigator.pushNamed(context, OrderHistoryScreen.routeName);
               },
               onTapCart: () {
+                // Cart doc gio hien tai tu cung mot CartProvider dung chung toan app.
                 Navigator.pushNamed(context, CartScreen.routeName);
               },
             ),

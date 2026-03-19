@@ -9,16 +9,19 @@ class CartProvider extends ChangeNotifier {
   final Map<String, CartItem> _items = {};
   final List<Order> _orders = [];
 
+  // Chi expose read-only de UI khong thay doi state truc tiep.
   Map<String, CartItem> get items => UnmodifiableMapView(_items);
   List<Order> get orders => List.unmodifiable(_orders);
 
   bool get isEmpty => _items.isEmpty;
 
   int get itemCount {
+    // Dem tong so luong san pham (khong phai so dong item).
     return _items.values.fold(0, (sum, item) => sum + item.quantity);
   }
 
   double get totalAmount {
+    // Tong tien = tong (gia * so luong) cua tung item.
     return _items.values.fold(0, (sum, item) => sum + item.totalPrice);
   }
 
@@ -64,6 +67,7 @@ class CartProvider extends ChangeNotifier {
       return null;
     }
 
+    // Tao snapshot item tai thoi diem checkout de luu lich su don hang.
     final order = Order(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       items: _items.values
@@ -73,6 +77,7 @@ class CartProvider extends ChangeNotifier {
       createdAt: DateTime.now(),
     );
 
+    // Chen vao dau danh sach de don moi nhat hien thi truoc.
     _orders.insert(0, order);
     _items.clear();
     notifyListeners();

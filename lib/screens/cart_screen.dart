@@ -15,6 +15,7 @@ class CartScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Gio hang')),
       body: Consumer<CartProvider>(
         builder: (context, cart, child) {
+          // Cart la diem giua luong du lieu: nhan item tu Detail va gui sang Checkout.
           if (cart.isEmpty) {
             return Center(
               child: Column(
@@ -31,6 +32,7 @@ class CartScreen extends StatelessWidget {
             );
           }
 
+          // Chuyen Map trong provider thanh list de render danh sach san pham.
           final items = cart.items.values.toList(growable: false);
 
           return Column(
@@ -82,6 +84,7 @@ class CartScreen extends StatelessWidget {
                         Expanded(
                           child: FilledButton(
                             onPressed: () {
+                              // Sang Checkout voi du lieu hien tai van doc truc tiep tu CartProvider.
                               Navigator.pushNamed(
                                 context,
                                 CheckoutScreen.routeName,
@@ -110,6 +113,7 @@ class _CartItemRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // read() dung de goi method tang/giam, khong can rebuild theo tung thay doi.
     final cart = context.read<CartProvider>();
 
     return ListTile(

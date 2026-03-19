@@ -2,8 +2,10 @@ import 'package:baibanhang/models/product.dart';
 
 class ProductService {
   Future<List<Product>> getProducts() async {
+    // Gia lap do tre mang de giao dien loading giong call API that.
     await Future.delayed(const Duration(milliseconds: 400));
 
+    // Du lieu mock tam thoi cho bai thuc hanh.
     return const [
       Product(
         id: 'p1',

@@ -14,6 +14,7 @@ class CheckoutScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Checkout')),
       body: Consumer<CartProvider>(
         builder: (context, cart, child) {
+          // Checkout tiep tuc doc gio hang truc tiep tu CartProvider (khong truyen tay).
           if (cart.isEmpty) {
             return const Center(
               child: Text('Khong co san pham nao de thanh toan.'),
@@ -58,10 +59,12 @@ class CheckoutScreen extends StatelessWidget {
                   width: double.infinity,
                   child: FilledButton(
                     onPressed: () {
+                      // checkout() vua tao order vua clear gio hang.
                       final order = context.read<CartProvider>().checkout();
                       if (order == null) {
                         return;
                       }
+                      // Order moi duoc luu vao CartProvider.orders de OrderHistory hien thi.
 
                       ScaffoldMessenger.of(context)
                         ..hideCurrentSnackBar()
@@ -69,6 +72,7 @@ class CheckoutScreen extends StatelessWidget {
                           const SnackBar(content: Text('Dat hang thanh cong')),
                         );
 
+                      // Dung pushReplacement de tranh quay lai man checkout rong.
                       Navigator.pushReplacementNamed(
                         context,
                         OrderHistoryScreen.routeName,

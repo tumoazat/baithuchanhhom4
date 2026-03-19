@@ -12,6 +12,7 @@ class ProductCard extends StatelessWidget {
     if (image != null && image.isNotEmpty) {
       return image;
     }
+    // Anh fallback theo seed giup moi san pham co anh on dinh qua cac lan build.
     return 'https://picsum.photos/seed/${product.id}/600/600';
   }
 
@@ -29,6 +30,7 @@ class ProductCard extends StatelessWidget {
   }
 
   int _fakeSoldCount() {
+    // Tao so da ban "gia" nhung deterministic theo id de khong nhay so moi lan mo app.
     final seed = product.id.codeUnits.fold<int>(0, (sum, code) => sum + code);
     return 120 + (seed * 17) % 9200;
   }
